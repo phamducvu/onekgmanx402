@@ -51,7 +51,7 @@ async function verifyPayment(req, res, next) {
         maxAmountRequired: path === '/api/basic' ? '1000' : 
                           path === '/api/premium' ? '10000' :
                           path === '/api/pro' ? '100000' : '1000000',
-        resource: `https://onekgman-server.vercel.app${path}`,
+        resource: `https://onekgmanx402.vercel.app${path}`,
         description: `${path} content access`,
         mimeType: 'application/json',
         payTo: payTo,
@@ -109,7 +109,7 @@ async function verifyPayment(req, res, next) {
           maxAmountRequired: path === '/api/basic' ? '1000' : 
                             path === '/api/premium' ? '10000' :
                             path === '/api/pro' ? '100000' : '1000000',
-          resource: `https://onekgman-server.vercel.app${path}`,
+          resource: `https://onekgmanx402.vercel.app${path}`,
           description: `${path} content access`,
           mimeType: 'application/json',
           payTo: payTo,
@@ -141,7 +141,7 @@ async function verifyPayment(req, res, next) {
         maxAmountRequired: path === '/api/basic' ? '1000' : 
                           path === '/api/premium' ? '10000' :
                           path === '/api/pro' ? '100000' : '1000000',
-        resource: `https://onekgman-server.vercel.app${path}`,
+        resource: `https://onekgmanx402.vercel.app${path}`,
         description: `${path} content access`,
         mimeType: 'application/json',
         payTo: payTo,
