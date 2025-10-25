@@ -1,4 +1,6 @@
 const express = require('express');
+const { verify } = require('x402');
+const { createConnectedClient } = require('x402');
 require('dotenv').config();
 
 const app = express();
@@ -27,16 +29,107 @@ if (!payTo) {
 console.log('🚀 Onekgman Server Starting...');
 console.log(`💰 Payment Address: ${payTo}`);
 console.log(`🌐 Network: ${network}`);
-console.log(`🔧 Using PRODUCTION verification (simple mode)`);
+console.log(`🔧 Using CUSTOM verification (no middleware)`);
 
-// Simple payment verification middleware (bypass signature verification for production)
+// Payment requirements for each endpoint
+const paymentRequirements = {
+  '/api/basic': {
+    scheme: 'exact',
+    network: network,
+    maxAmountRequired: '1000', // $0.001 in USDC (6 decimals)
+    resource: 'http://localhost:3001/api/basic',
+    description: 'Basic Onekgman content access',
+    mimeType: 'application/json',
+    payTo: payTo,
+    maxTimeoutSeconds: 60,
+    asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
+    outputSchema: {
+      input: {
+        type: 'http',
+        method: 'GET',
+        discoverable: true
+      }
+    },
+    extra: {
+      name: 'USD Coin',
+      version: '2'
+    }
+  },
+  '/api/premium': {
+    scheme: 'exact',
+    network: network,
+    maxAmountRequired: '10000', // $0.01 in USDC (6 decimals)
+    resource: 'http://localhost:3001/api/premium',
+    description: 'Premium Onekgman content access',
+    mimeType: 'application/json',
+    payTo: payTo,
+    maxTimeoutSeconds: 60,
+    asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    outputSchema: {
+      input: {
+        type: 'http',
+        method: 'GET',
+        discoverable: true
+      }
+    },
+    extra: {
+      name: 'USD Coin',
+      version: '2'
+    }
+  },
+  '/api/pro': {
+    scheme: 'exact',
+    network: network,
+    maxAmountRequired: '100000', // $0.10 in USDC (6 decimals)
+    resource: 'http://localhost:3001/api/pro',
+    description: 'Pro Onekgman content access',
+    mimeType: 'application/json',
+    payTo: payTo,
+    maxTimeoutSeconds: 60,
+    asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    outputSchema: {
+      input: {
+        type: 'http',
+        method: 'GET',
+        discoverable: true
+      }
+    },
+    extra: {
+      name: 'USD Coin',
+      version: '2'
+    }
+  },
+  '/api/vip': {
+    scheme: 'exact',
+    network: network,
+    maxAmountRequired: '1000000', // $1.00 in USDC (6 decimals)
+    resource: 'http://localhost:3001/api/vip',
+    description: 'VIP Onekgman content access',
+    mimeType: 'application/json',
+    payTo: payTo,
+    maxTimeoutSeconds: 60,
+    asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    outputSchema: {
+      input: {
+        type: 'http',
+        method: 'GET',
+        discoverable: true
+      }
+    },
+    extra: {
+      name: 'USD Coin',
+      version: '2'
+    }
+  }
+};
+
+// Custom payment verification middleware
 async function verifyPayment(req, res, next) {
   const path = req.path;
   const paymentHeader = req.headers['x-payment'];
   
   // Check if this is a paid endpoint
-  const paidEndpoints = ['/api/basic', '/api/premium', '/api/pro', '/api/vip'];
-  if (!paidEndpoints.includes(path)) {
+  if (!paymentRequirements[path]) {
     return next(); // Free endpoint, proceed
   }
   
@@ -45,120 +138,51 @@ async function verifyPayment(req, res, next) {
     return res.status(402).json({
       x402Version: 1,
       error: 'X-PAYMENT header is required',
-      accepts: [{
-        scheme: 'exact',
-        network: network,
-        maxAmountRequired: path === '/api/basic' ? '1000' : 
-                          path === '/api/premium' ? '10000' :
-                          path === '/api/pro' ? '100000' : '1000000',
-        resource: `https://onekgman-server.vercel.app${path}`,
-        description: `${path} content access`,
-        mimeType: 'application/json',
-        payTo: payTo,
-        maxTimeoutSeconds: 60,
-        asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-        outputSchema: {
-          input: {
-            type: 'http',
-            method: 'GET',
-            discoverable: true
-          }
-        },
-        extra: {
-          name: 'USD Coin',
-          version: '2'
-        }
-      }]
+      accepts: [paymentRequirements[path]]
     });
   }
   
   try {
     // Decode payment payload
     const paymentPayload = JSON.parse(Buffer.from(paymentHeader, 'base64').toString());
+    paymentPayload.x402Version = 1;
     
-    console.log('🔍 Payment received:', {
+    console.log('🔍 Verifying payment:', {
       path,
       payer: paymentPayload.payload?.authorization?.from,
-      amount: paymentPayload.payload?.authorization?.value,
-      signature: paymentPayload.payload?.signature?.substring(0, 10) + '...'
+      amount: paymentPayload.payload?.authorization?.value
     });
     
-    // For production, accept any valid payment format
-    if (paymentPayload.payload?.authorization?.from && 
-        paymentPayload.payload?.authorization?.to === payTo &&
-        paymentPayload.payload?.signature) {
-      
-      console.log('✅ Payment accepted (production mode)');
-      
-      // Store payment info
-      req.paymentInfo = {
-        payer: paymentPayload.payload.authorization.from,
-        amount: paymentPayload.payload.authorization.value,
-        signature: paymentPayload.payload.signature
-      };
-      
-      next();
-    } else {
-      console.log('❌ Invalid payment format');
+    // Create blockchain client for verification
+    const client = createConnectedClient(network);
+    
+    // Verify payment using x402 SDK
+    const verification = await verify(client, paymentPayload, paymentRequirements[path]);
+    
+    if (!verification.isValid) {
+      console.log('❌ Payment verification failed:', verification.invalidReason);
       return res.status(402).json({
         x402Version: 1,
-        error: 'Invalid payment format',
-        accepts: [{
-          scheme: 'exact',
-          network: network,
-          maxAmountRequired: path === '/api/basic' ? '1000' : 
-                            path === '/api/premium' ? '10000' :
-                            path === '/api/pro' ? '100000' : '1000000',
-          resource: `https://onekgman-server.vercel.app${path}`,
-          description: `${path} content access`,
-          mimeType: 'application/json',
-          payTo: payTo,
-          maxTimeoutSeconds: 60,
-          asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-          outputSchema: {
-            input: {
-              type: 'http',
-              method: 'GET',
-              discoverable: true
-            }
-          },
-          extra: {
-            name: 'USD Coin',
-            version: '2'
-          }
-        }]
+        error: verification.invalidReason,
+        accepts: [paymentRequirements[path]],
+        payer: verification.payer
       });
     }
+    
+    console.log('✅ Payment verified successfully');
+    
+    // Store verification result for potential settlement
+    req.paymentVerification = verification;
+    req.paymentPayload = paymentPayload;
+    
+    next();
     
   } catch (error) {
     console.error('💥 Payment verification error:', error);
     return res.status(402).json({
       x402Version: 1,
       error: 'Invalid payment format',
-      accepts: [{
-        scheme: 'exact',
-        network: network,
-        maxAmountRequired: path === '/api/basic' ? '1000' : 
-                          path === '/api/premium' ? '10000' :
-                          path === '/api/pro' ? '100000' : '1000000',
-        resource: `https://onekgman-server.vercel.app${path}`,
-        description: `${path} content access`,
-        mimeType: 'application/json',
-        payTo: payTo,
-        maxTimeoutSeconds: 60,
-        asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-        outputSchema: {
-          input: {
-            type: 'http',
-            method: 'GET',
-            discoverable: true
-          }
-        },
-        extra: {
-          name: 'USD Coin',
-          version: '2'
-        }
-      }]
+      accepts: [paymentRequirements[path]]
     });
   }
 }
@@ -170,8 +194,8 @@ app.use(verifyPayment);
 app.get('/', (req, res) => {
   res.json({
     name: 'Onekgman Server',
-    version: '2.0.0',
-    description: 'A x402 payment-enabled server with PRODUCTION verification',
+    version: '1.0.0',
+    description: 'A x402 payment-enabled server with CUSTOM verification',
     endpoints: {
       free: ['/health', '/info'],
       paid: ['/api/basic', '/api/premium', '/api/pro', '/api/vip']
@@ -182,9 +206,7 @@ app.get('/', (req, res) => {
       pro: '$0.10',
       vip: '$1.00'
     },
-    verification: 'PRODUCTION (simple mode)',
-    network: network,
-    payTo: payTo
+    verification: 'CUSTOM (no middleware)'
   });
 });
 
@@ -194,8 +216,7 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     server: 'Onekgman',
     uptime: process.uptime(),
-    verification: 'PRODUCTION',
-    network: network
+    verification: 'CUSTOM'
   });
 });
 
@@ -207,11 +228,9 @@ app.get('/info', (req, res) => {
       'x402 Payment Integration',
       'Multiple Pricing Tiers',
       'Base Network Support',
-      'PRODUCTION Payment Verification'
+      'CUSTOM Payment Verification'
     ],
-    contact: 'onekgman@example.com',
-    network: network,
-    payTo: payTo
+    contact: 'onekgman@example.com'
   });
 });
 
@@ -226,10 +245,8 @@ app.get('/api/basic', (req, res) => {
       'Community features'
     ],
     nextUpgrade: 'Premium tier for $0.01',
-    payment: 'Verified with PRODUCTION verification',
-    payer: req.paymentInfo?.payer,
-    amount: req.paymentInfo?.amount,
-    timestamp: new Date().toISOString()
+    payment: 'Verified with CUSTOM verification',
+    payer: req.paymentVerification?.payer
   });
 });
 
@@ -244,10 +261,8 @@ app.get('/api/premium', (req, res) => {
       'Exclusive content'
     ],
     nextUpgrade: 'Pro tier for $0.10',
-    payment: 'Verified with PRODUCTION verification',
-    payer: req.paymentInfo?.payer,
-    amount: req.paymentInfo?.amount,
-    timestamp: new Date().toISOString()
+    payment: 'Verified with CUSTOM verification',
+    payer: req.paymentVerification?.payer
   });
 });
 
@@ -263,10 +278,8 @@ app.get('/api/pro', (req, res) => {
       'API access'
     ],
     nextUpgrade: 'VIP tier for $1.00',
-    payment: 'Verified with PRODUCTION verification',
-    payer: req.paymentInfo?.payer,
-    amount: req.paymentInfo?.amount,
-    timestamp: new Date().toISOString()
+    payment: 'Verified with CUSTOM verification',
+    payer: req.paymentVerification?.payer
   });
 });
 
@@ -284,10 +297,8 @@ app.get('/api/vip', (req, res) => {
       'White-label options'
     ],
     message: 'You have reached the highest tier!',
-    payment: 'Verified with PRODUCTION verification',
-    payer: req.paymentInfo?.payer,
-    amount: req.paymentInfo?.amount,
-    timestamp: new Date().toISOString()
+    payment: 'Verified with CUSTOM verification',
+    payer: req.paymentVerification?.payer
   });
 });
 
@@ -316,5 +327,5 @@ app.listen(PORT, () => {
   console.log(`📱 Test endpoints:`);
   console.log(`   Free: http://localhost:${PORT}/health`);
   console.log(`   Paid: http://localhost:${PORT}/api/basic`);
-  console.log(`🔧 Using PRODUCTION verification (simple mode)`);
+  console.log(`🔧 Using CUSTOM verification (no middleware)`);
 });

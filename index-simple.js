@@ -27,9 +27,9 @@ if (!payTo) {
 console.log('🚀 Onekgman Server Starting...');
 console.log(`💰 Payment Address: ${payTo}`);
 console.log(`🌐 Network: ${network}`);
-console.log(`🔧 Using PRODUCTION verification (simple mode)`);
+console.log(`🔧 Using SIMPLE verification (bypass signature check)`);
 
-// Simple payment verification middleware (bypass signature verification for production)
+// Simple payment verification middleware (bypass signature verification for testing)
 async function verifyPayment(req, res, next) {
   const path = req.path;
   const paymentHeader = req.headers['x-payment'];
@@ -51,7 +51,7 @@ async function verifyPayment(req, res, next) {
         maxAmountRequired: path === '/api/basic' ? '1000' : 
                           path === '/api/premium' ? '10000' :
                           path === '/api/pro' ? '100000' : '1000000',
-        resource: `https://onekgman-server.vercel.app${path}`,
+        resource: `http://localhost:3001${path}`,
         description: `${path} content access`,
         mimeType: 'application/json',
         payTo: payTo,
@@ -83,12 +83,12 @@ async function verifyPayment(req, res, next) {
       signature: paymentPayload.payload?.signature?.substring(0, 10) + '...'
     });
     
-    // For production, accept any valid payment format
+    // For testing purposes, accept any valid payment format
     if (paymentPayload.payload?.authorization?.from && 
         paymentPayload.payload?.authorization?.to === payTo &&
         paymentPayload.payload?.signature) {
       
-      console.log('✅ Payment accepted (production mode)');
+      console.log('✅ Payment accepted (bypassing signature verification)');
       
       // Store payment info
       req.paymentInfo = {
@@ -109,7 +109,7 @@ async function verifyPayment(req, res, next) {
           maxAmountRequired: path === '/api/basic' ? '1000' : 
                             path === '/api/premium' ? '10000' :
                             path === '/api/pro' ? '100000' : '1000000',
-          resource: `https://onekgman-server.vercel.app${path}`,
+          resource: `http://localhost:3001${path}`,
           description: `${path} content access`,
           mimeType: 'application/json',
           payTo: payTo,
@@ -141,7 +141,7 @@ async function verifyPayment(req, res, next) {
         maxAmountRequired: path === '/api/basic' ? '1000' : 
                           path === '/api/premium' ? '10000' :
                           path === '/api/pro' ? '100000' : '1000000',
-        resource: `https://onekgman-server.vercel.app${path}`,
+        resource: `http://localhost:3001${path}`,
         description: `${path} content access`,
         mimeType: 'application/json',
         payTo: payTo,
@@ -170,8 +170,8 @@ app.use(verifyPayment);
 app.get('/', (req, res) => {
   res.json({
     name: 'Onekgman Server',
-    version: '2.0.0',
-    description: 'A x402 payment-enabled server with PRODUCTION verification',
+    version: '1.0.0',
+    description: 'A x402 payment-enabled server with SIMPLE verification',
     endpoints: {
       free: ['/health', '/info'],
       paid: ['/api/basic', '/api/premium', '/api/pro', '/api/vip']
@@ -182,9 +182,7 @@ app.get('/', (req, res) => {
       pro: '$0.10',
       vip: '$1.00'
     },
-    verification: 'PRODUCTION (simple mode)',
-    network: network,
-    payTo: payTo
+    verification: 'SIMPLE (bypass signature check)'
   });
 });
 
@@ -194,8 +192,7 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     server: 'Onekgman',
     uptime: process.uptime(),
-    verification: 'PRODUCTION',
-    network: network
+    verification: 'SIMPLE'
   });
 });
 
@@ -207,11 +204,9 @@ app.get('/info', (req, res) => {
       'x402 Payment Integration',
       'Multiple Pricing Tiers',
       'Base Network Support',
-      'PRODUCTION Payment Verification'
+      'SIMPLE Payment Verification'
     ],
-    contact: 'onekgman@example.com',
-    network: network,
-    payTo: payTo
+    contact: 'onekgman@example.com'
   });
 });
 
@@ -226,10 +221,9 @@ app.get('/api/basic', (req, res) => {
       'Community features'
     ],
     nextUpgrade: 'Premium tier for $0.01',
-    payment: 'Verified with PRODUCTION verification',
+    payment: 'Verified with SIMPLE verification',
     payer: req.paymentInfo?.payer,
-    amount: req.paymentInfo?.amount,
-    timestamp: new Date().toISOString()
+    amount: req.paymentInfo?.amount
   });
 });
 
@@ -244,10 +238,9 @@ app.get('/api/premium', (req, res) => {
       'Exclusive content'
     ],
     nextUpgrade: 'Pro tier for $0.10',
-    payment: 'Verified with PRODUCTION verification',
+    payment: 'Verified with SIMPLE verification',
     payer: req.paymentInfo?.payer,
-    amount: req.paymentInfo?.amount,
-    timestamp: new Date().toISOString()
+    amount: req.paymentInfo?.amount
   });
 });
 
@@ -263,10 +256,9 @@ app.get('/api/pro', (req, res) => {
       'API access'
     ],
     nextUpgrade: 'VIP tier for $1.00',
-    payment: 'Verified with PRODUCTION verification',
+    payment: 'Verified with SIMPLE verification',
     payer: req.paymentInfo?.payer,
-    amount: req.paymentInfo?.amount,
-    timestamp: new Date().toISOString()
+    amount: req.paymentInfo?.amount
   });
 });
 
@@ -284,10 +276,9 @@ app.get('/api/vip', (req, res) => {
       'White-label options'
     ],
     message: 'You have reached the highest tier!',
-    payment: 'Verified with PRODUCTION verification',
+    payment: 'Verified with SIMPLE verification',
     payer: req.paymentInfo?.payer,
-    amount: req.paymentInfo?.amount,
-    timestamp: new Date().toISOString()
+    amount: req.paymentInfo?.amount
   });
 });
 
@@ -316,5 +307,5 @@ app.listen(PORT, () => {
   console.log(`📱 Test endpoints:`);
   console.log(`   Free: http://localhost:${PORT}/health`);
   console.log(`   Paid: http://localhost:${PORT}/api/basic`);
-  console.log(`🔧 Using PRODUCTION verification (simple mode)`);
+  console.log(`🔧 Using SIMPLE verification (bypass signature check)`);
 });
