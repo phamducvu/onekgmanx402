@@ -1,0 +1,19 @@
+{
+  "name": "onekgman-server",
+  "version": "1.0.0",
+  "description": "Onekgman x402 Payment Server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["x402", "payment", "server", "onekgman"],
+  "author": "Onekgman",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "x402-express": "^0.6.5"
+  }
+}
