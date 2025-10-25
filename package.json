@@ -3,9 +3,13 @@
   "version": "2.0.0",
   "description": "Onekgman x402 Payment Server - Production Ready",
   "main": "index.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js",
+    "build": "echo 'No build step required'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": ["x402", "payment", "server", "onekgman", "production"],

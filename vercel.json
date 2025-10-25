@@ -11,5 +11,11 @@
       "src": "/(.*)",
       "dest": "index.js"
     }
-  ]
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "ADDRESS": "0xa552f5aeeec64287a6adb00e5e28a1e533e27ddb",
+    "NETWORK": "base",
+    "FACILITATOR_URL": "https://x402.org/facilitator"
+  }
 }

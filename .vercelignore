@@ -1,0 +1,22 @@
+# Vercel ignore file
+node_modules/
+.env
+.env.local
+.env.*.local
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Development files
+index-local.js
+index-custom.js
+index-simple.js
+env-config
+env.example
